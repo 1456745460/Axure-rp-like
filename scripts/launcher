@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
+set -m
 
-PROJECT_DIR="/Users/wangbingbing/htmlProject/prototype_design"
-APP_URL="http://localhost:5173"
+PROJECT_DIR="${AXURE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+WEB_PORT="${AXURE_WEB_PORT:-5173}"
+API_PORT="${AXURE_API_PORT:-3789}"
+APP_URL="http://localhost:$WEB_PORT"
 NODE_BIN="$(command -v node 2>/dev/null || true)"
 
 if [[ -z "$NODE_BIN" ]]; then
@@ -16,28 +19,77 @@ if [[ -z "$NODE_BIN" ]]; then
 fi
 
 if [[ -z "$NODE_BIN" || ! -x "$NODE_BIN" ]]; then
-  osascript -e 'display alert "未找到 Node.js，请先安装 Node.js 后再启动。" as warning' 2>/dev/null || true
+  echo '未找到 Node.js，请先安装 Node.js。' >&2
   exit 1
 fi
 
 export PATH="$(dirname "$NODE_BIN"):$PATH"
 cd "$PROJECT_DIR"
 
-if curl --silent --fail --max-time 1 "$APP_URL" >/dev/null 2>&1; then
-  open "$APP_URL"
-  exit 0
-fi
+for port in "$WEB_PORT" "$API_PORT"; do
+  if /usr/sbin/lsof -nP -iTCP:"$port" -sTCP:LISTEN -t >/dev/null 2>&1; then
+    echo "端口 $port 已被占用，请先退出之前启动的项目服务再重试。" >&2
+    exit 1
+  fi
+done
 
-LOG_FILE="$HOME/Library/Logs/Axure RP Like.log"
-nohup npm run dev >"$LOG_FILE" 2>&1 </dev/null &
+service_pids=()
+cleanup() {
+  trap '' TERM INT
+  for pid in "${service_pids[@]}"; do
+    kill -TERM -- "-$pid" 2>/dev/null || true
+  done
+  # Give services time to exit, then clean up any worker that ignored SIGTERM.
+  for attempt in {1..20}; do
+    local running=0
+    for pid in "${service_pids[@]}"; do
+      if kill -0 -- "-$pid" 2>/dev/null; then running=1; fi
+    done
+    if [[ "$running" == 0 ]]; then break; fi
+    sleep 0.1
+  done
+  for pid in "${service_pids[@]}"; do
+    kill -KILL -- "-$pid" 2>/dev/null || true
+  done
+  wait || true
+}
+trap cleanup EXIT
+trap 'exit 0' TERM INT
 
-for attempt in {1..50}; do
-  if curl --silent --fail --max-time 1 "$APP_URL" >/dev/null 2>&1; then
-    open "$APP_URL"
-    exit 0
+PORT="$API_PORT" "$NODE_BIN" server/index.js &
+service_pids+=("$!")
+"$NODE_BIN" node_modules/vite/bin/vite.js --host localhost --port "$WEB_PORT" --strictPort &
+service_pids+=("$!")
+
+ready=0
+for attempt in {1..150}; do
+  for pid in "${service_pids[@]}"; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo '项目服务启动失败，请检查上方日志。' >&2
+      exit 1
+    fi
+  done
+  if curl --silent --fail --max-time 1 "$APP_URL" >/dev/null 2>&1 &&
+     curl --silent --fail --max-time 1 "http://127.0.0.1:$API_PORT/api/health" >/dev/null 2>&1; then
+    ready=1
+    break
   fi
   sleep 0.2
 done
 
-osascript -e 'display alert "启动失败，请检查 ~/Library/Logs/Axure RP Like.log。" as warning' 2>/dev/null || true
-exit 1
+if [[ "$ready" == 0 ]]; then
+  echo '等待服务启动超时。' >&2
+  exit 1
+fi
+if [[ "${AXURE_OPEN_BROWSER:-1}" != 0 ]]; then open "$APP_URL"; fi
+
+# Stay attached to the app; quitting it signals this supervisor to stop both groups.
+while true; do
+  for pid in "${service_pids[@]}"; do
+    if ! kill -0 "$pid" 2>/dev/null; then
+      echo '项目服务意外退出。' >&2
+      exit 1
+    fi
+  done
+  sleep 0.5
+done

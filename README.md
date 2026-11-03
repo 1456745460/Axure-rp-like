@@ -33,6 +33,17 @@ npm run server   # 仅 API
 npm run client   # 仅 Vite
 ```
 
+macOS 可安装一键启动应用（需已安装 Node.js、项目依赖及 Xcode Command Line Tools）：
+
+```bash
+bash scripts/install-macos-app.sh
+```
+
+双击 `/Applications/Axure RP Like.app` 后，服务在后台启动并自动打开浏览器，应用常驻 Dock。
+右键 Dock 图标选择「退出」，或在应用菜单按 `Command + Q`，会停止应用启动的前后端服务。
+重复打开应用会再次打开浏览器。启动日志位于 `~/Library/Logs/Axure RP Like.log`。
+若已通过 `npm run dev` 启动项目，请先停止该命令，避免端口占用。移动项目目录后需重新运行安装脚本。
+
 ## 使用提示
 
 1. 从左下组件库拖拽组件到画布

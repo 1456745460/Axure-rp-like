@@ -5,7 +5,7 @@
 	<key>CFBundleDisplayName</key>
 	<string>Axure RP Like</string>
 	<key>CFBundleExecutable</key>
-	<string>launcher</string>
+	<string>AxureLauncher</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.prototype.axure-rp-like</string>
 	<key>CFBundleName</key>
@@ -18,5 +18,9 @@
 	<string>1</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>10.13</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>LSUIElement</key>
+	<false/>
 </dict>
 </plist>
