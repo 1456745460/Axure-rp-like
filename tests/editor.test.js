@@ -4,12 +4,23 @@ import { Script } from 'node:vm'
 import { createPinia, setActivePinia } from 'pinia'
 import { useProjectStore, COMPONENT_LIBRARY } from '../src/stores/project.js'
 import { buildExportHtml, renderFeedbackHtml } from '../src/utils/exportHtml.js'
-import { snapPosition, editableFields, parseField, paginationState, widgetsInRect } from '../src/utils/editor.js'
+import { snapPosition, editableFields, parseField, paginationState, widgetsInRect, shouldIgnoreCanvasClipboard } from '../src/utils/editor.js'
 
 function setup() {
   setActivePinia(createPinia())
   return useProjectStore()
 }
+
+test('canvas clipboard shortcuts bypass preview controls but preserve editor and table text editing', () => {
+  const targetWith = (...selectors) => ({ closest: selector => selector.split(', ').some(item => selectors.includes(item)) ? {} : null })
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.widget')), false)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.widget', 'input')), false)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.inline-editor', 'input')), true)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.editable-table', 'textarea')), true)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.el-tree', 'input')), true)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('.el-dialog', 'input')), true)
+  assert.equal(shouldIgnoreCanvasClipboard(targetWith('input')), true)
+})
 
 test('centered drop and image insertion respect page edges', () => {
   const store = setup()

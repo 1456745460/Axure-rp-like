@@ -60,7 +60,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import WidgetView from './WidgetView.vue'
 import EditableTable from './EditableTable.vue'
-import { snapPosition, editableFields, parseField, isTextInput, widgetBounds, widgetsInRect } from '@/utils/editor'
+import { snapPosition, editableFields, parseField, isTextInput, shouldIgnoreCanvasClipboard, widgetBounds, widgetsInRect } from '@/utils/editor'
 import { useProjectStore } from '@/stores/project'
 
 const store = useProjectStore()
@@ -339,19 +339,19 @@ function ignoreShortcut(target) {
   return isTextInput(target) || !!target?.closest?.('.el-dialog, .el-message-box')
 }
 function onCopy(e) {
-  if (ignoreShortcut(e.target) || e.target?.closest?.('.el-tree') || !store.selectedWidget) return
+  if (shouldIgnoreCanvasClipboard(e.target) || !store.selectedWidget) return
   e.preventDefault()
   const data = JSON.stringify({ widgets: store.selectedWidgets })
   e.clipboardData.setData('application/x-prototype-widget', data)
   e.clipboardData.setData('text/plain', 'prototype-widget:' + data)
 }
 function onCut(e) {
-  if (ignoreShortcut(e.target) || e.target?.closest?.('.el-tree') || !store.selectedWidget) return
+  if (shouldIgnoreCanvasClipboard(e.target) || !store.selectedWidget) return
   onCopy(e)
   store.removeSelectedWidgets()
 }
 function onPaste(e) {
-  if (ignoreShortcut(e.target) || e.target?.closest?.('.el-tree') || !page.value) return
+  if (shouldIgnoreCanvasClipboard(e.target) || !page.value) return
   const images = Array.from(e.clipboardData?.items || [])
     .filter(item => item.kind === 'file' && item.type.startsWith('image/')).map(item => item.getAsFile()).filter(Boolean)
   if (images.length) { e.preventDefault(); importImages(images, pastePoint()); return }

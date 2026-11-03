@@ -54,6 +54,12 @@ export function isTextInput(target) {
   return !!target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]')
 }
 
+export function shouldIgnoreCanvasClipboard(target) {
+  if (target?.closest?.('.el-tree, .el-dialog, .el-message-box, .editable-table')) return true
+  if (target?.closest?.('.widget')) return false
+  return isTextInput(target)
+}
+
 export function paginationState(total, pageSize, currentPage) {
   const count = Math.max(1, Math.ceil((Number(total) || 0) / Math.max(1, Number(pageSize) || 10)))
   const current = Math.max(1, Math.min(Number(currentPage) || 1, count))

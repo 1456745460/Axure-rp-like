@@ -5,9 +5,10 @@ import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
+import LivePreview from './components/LivePreview.vue'
 import './style.css'
 
-const app = createApp(App)
+const app = createApp(new URLSearchParams(window.location.search).get('preview') === '1' ? LivePreview : App)
 const pinia = createPinia()
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

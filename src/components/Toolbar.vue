@@ -55,6 +55,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useProjectStore } from '@/stores/project'
 import { createAutoSaver } from '@/utils/autoSave'
 import { buildExportHtml, downloadHtml } from '@/utils/exportHtml'
+import { DRAFT_KEY } from '@/utils/livePreview'
 
 const store = useProjectStore()
 const projectName = ref(store.name)
@@ -63,7 +64,7 @@ const saveHint = ref('')
 const dialogVisible = ref(false)
 const loadingList = ref(false)
 const projects = ref([])
-const draftKey = 'prototype-design-draft-v1'
+const draftKey = DRAFT_KEY
 let restoredPending = false
 try {
   const draft = JSON.parse(localStorage.getItem(draftKey) || 'null')
@@ -75,8 +76,10 @@ try {
 projectName.value = store.name
 let pending = restoredPending
 function persistDraft() {
-  try { localStorage.setItem(draftKey, JSON.stringify({ project: store.toJSON(), pending })) }
-  catch { /* The API remains the primary persistence path if storage is full. */ }
+  try {
+    localStorage.setItem(draftKey, JSON.stringify({ project: store.toJSON(), pending }))
+    return true
+  } catch { return false /* The API remains the primary persistence path if storage is full. */ }
 }
 const saver = createAutoSaver({
   getSnapshot: () => store.toJSON(),
@@ -161,11 +164,18 @@ async function save() {
 }
 
 function preview() {
-  const url = URL.createObjectURL(new Blob([buildExportHtml(store.toJSON())], { type: 'text/html;charset=utf-8' }))
-  const tab = window.open(url, '_blank')
+  window.dispatchEvent(new Event('prototype:commit-edit'))
+  store.setName(projectName.value)
+  if (!persistDraft()) {
+    ElMessage.error('无法更新预览，请检查浏览器本地存储空间或权限后重试')
+    return
+  }
+  const url = new URL(window.location.href)
+  url.searchParams.set('preview', '1')
+  url.hash = ''
+  const tab = window.open(url.href, '_blank')
   if (!tab) ElMessage.warning('请允许浏览器打开预览标签页')
   else tab.opener = null
-  setTimeout(() => URL.revokeObjectURL(url), 60000)
 }
 
 function exportHtml() {
