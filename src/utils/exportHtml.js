@@ -1,4 +1,11 @@
 import { paginationState, tableColumnWidths } from './editor.js'
+import { arrowGeometry } from './arrow.js'
+import { renderIconSvg, resolveIconName } from './icons.js'
+
+export function renderArrowSvg(widget) {
+  const { start, shaftEnd, strokeWidth, headPoints } = arrowGeometry(widget)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 ${Math.max(33, widget.width)} ${Math.max(33, widget.height)}"><line x1="${start.x}" y1="${start.y}" x2="${shaftEnd.x}" y2="${shaftEnd.y}" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" /><polygon points="${headPoints}" fill="currentColor" /></svg>`
+}
 
 /**
  * 将项目数据导出为可离线打开的多页 HTML（左侧目录树 + 右侧页面内容）
@@ -62,6 +69,10 @@ export function buildExportHtml(project) {
     const props = w.props || {}
 
     switch (type) {
+      case 'arrow':
+        return `<div class="w-arrow" style="${style};color:${escapeAttr(w.style?.color || '#303133')}">${renderArrowSvg(w)}</div>`
+      case 'icon':
+        return `<div class="w-icon" data-icon="${resolveIconName(props.icon)}" style="${style};display:flex;align-items:center;justify-content:center;color:${escapeAttr(w.style?.color || '#409eff')}">${renderIconSvg(props.icon)}</div>`
       case 'button':
         return `<button class="w-btn" style="${style}">${text || '按钮'}</button>`
       case 'input':

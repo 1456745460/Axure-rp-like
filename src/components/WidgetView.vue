@@ -3,7 +3,8 @@
 <script setup>
 import { h } from 'vue'
 import { ElInputNumber, ElSlider, ElRate, ElDatePicker, ElTimePicker, ElPagination, ElBreadcrumb, ElBreadcrumbItem, ElSteps, ElStep } from 'element-plus'
-import { renderFeedbackHtml } from '@/utils/exportHtml'
+import { renderArrowSvg, renderFeedbackHtml } from '@/utils/exportHtml'
+import { renderIconSvg } from '@/utils/icons'
 defineProps({ widget: { type: Object, required: true } })
 
 function innerStyle(w) {
@@ -40,6 +41,14 @@ function renderWidget(w) {
   const text = w.props?.text ?? ''
 
   switch (w.type) {
+    case 'arrow':
+    case 'icon':
+      return {
+        render: () => h('div', {
+          style: { ...style, padding: 0, color: w.style?.color || (w.type === 'icon' ? '#409eff' : '#303133') },
+          innerHTML: w.type === 'arrow' ? renderArrowSvg(w) : renderIconSvg(w.props?.icon)
+        })
+      }
     case 'button':
       return {
         render: () =>

@@ -47,6 +47,8 @@ export const COMPONENT_LIBRARY = [
       { type: 'text', label: '文本', icon: 'Document', defaultProps: { text: '文本内容' }, defaultSize: { width: 160, height: 32 }, defaultStyle: { fontSize: 14, color: '#303133', textAlign: 'left' } },
       { type: 'link', label: '链接', icon: 'Link', defaultProps: { text: '链接文字', href: '#' }, defaultSize: { width: 100, height: 28 }, defaultStyle: { fontSize: 14, color: '#409eff' } },
       { type: 'image', label: '图片', icon: 'Picture', defaultProps: { src: '' }, defaultSize: { width: 200, height: 140 }, defaultStyle: {} },
+      { type: 'arrow', label: '箭头', icon: 'Right', defaultProps: { startX: 0, startY: 0.5, endX: 1, endY: 0.5, strokeWidth: 3 }, defaultSize: { width: 180, height: 48 }, defaultStyle: { color: '#303133' } },
+      { type: 'icon', label: '图标', icon: 'Star', defaultProps: { icon: 'Picture' }, defaultSize: { width: 40, height: 40 }, defaultStyle: { color: '#409eff' } },
       { type: 'tag', label: '标签', icon: 'PriceTag', defaultProps: { text: '标签' }, defaultSize: { width: 64, height: 28 }, defaultStyle: { fontSize: 12, borderRadius: 4 } },
       { type: 'divider', label: '分割线', icon: 'Minus', defaultProps: {}, defaultSize: { width: 320, height: 16 }, defaultStyle: {} },
       { type: 'avatar', label: '头像', icon: 'User', defaultProps: { text: 'U' }, defaultSize: { width: 48, height: 48 }, defaultStyle: {} }

@@ -27,7 +27,17 @@
         <EditableTable v-if="w.type === 'table'" :widget="w" @select="store.selectWidget(w.id)" @move="onWidgetMouseDown($event, w)" />
         <div v-else class="widget-content"><WidgetView :widget="w" /></div>
         <template v-if="w.id === store.selectedWidgetId && selectedIds.length === 1">
-          <span
+          <template v-if="w.type === 'arrow'">
+            <button v-for="endpoint in ['start', 'end']" :key="endpoint" type="button"
+              class="arrow-handle" :class="'arrow-' + endpoint" :style="arrowHandleStyle(w, endpoint)"
+              :title="endpoint === 'start' ? '拖动起点调整方向和长度' : '拖动箭头端调整方向和长度'"
+              :aria-label="endpoint === 'start' ? '箭头起点' : '箭头终点'"
+              @dblclick.stop @mousedown.stop.prevent="onArrowHandleStart($event, w, endpoint)" />
+            <button type="button" class="arrow-handle arrow-width" :style="arrowHandleStyle(w, 'width')"
+              title="拖动调整箭头粗细" aria-label="箭头粗细" @dblclick.stop
+              @mousedown.stop.prevent="onArrowHandleStart($event, w, 'width')" />
+          </template>
+          <span v-else
             v-for="h in handles"
             :key="h"
             class="handle"
@@ -62,6 +72,7 @@ import WidgetView from './WidgetView.vue'
 import EditableTable from './EditableTable.vue'
 import { snapPosition, editableFields, parseField, isTextInput, shouldIgnoreCanvasClipboard, widgetBounds, widgetsInRect } from '@/utils/editor'
 import { useProjectStore } from '@/stores/project'
+import { arrowGeometry, arrowStrokeWidthAfterDrag, moveArrowEndpoint } from '@/utils/arrow'
 
 const store = useProjectStore()
 const viewportRef = ref(null)
@@ -82,7 +93,7 @@ const editorPosition = computed(() => ({
 watch(() => store.currentPageId, () => { cancelEditing(); onMouseUp(); lastPointer = null })
 
 function startEditing(widget) {
-  if (widget.type === 'table') return
+  if (['table', 'arrow', 'icon'].includes(widget.type)) return
   onMouseUp()
   if (editingId.value) finishEditing()
   store.selectWidget(widget.id)
@@ -273,8 +284,45 @@ function onResizeStart(e, w, handle) {
   window.addEventListener('mouseup', onMouseUp)
 }
 
+function arrowHandleStyle(widget, handle) {
+  const geometry = arrowGeometry(widget)
+  let point = geometry[handle]
+  if (handle === 'width') {
+    const dx = geometry.end.x - geometry.start.x
+    const dy = geometry.end.y - geometry.start.y
+    const length = Math.hypot(dx, dy) || 1
+    const offset = geometry.strokeWidth / 2 + 8
+    point = { x: (geometry.start.x + geometry.end.x) / 2 - dy / length * offset,
+      y: (geometry.start.y + geometry.end.y) / 2 + dx / length * offset }
+  }
+  return { left: `${point.x}px`, top: `${point.y}px` }
+}
+
+function onArrowHandleStart(event, widget, handle) {
+  if (event.button !== 0) return
+  finishEditing()
+  viewportRef.value.focus({ preventScroll: true })
+  onMouseUp()
+  store.beginTransaction()
+  dragState = { mode: 'arrow', id: widget.id, handle, point: stagePoint(event), original: JSON.parse(JSON.stringify(widget)) }
+  window.addEventListener('mousemove', onMouseMove)
+  window.addEventListener('mouseup', onMouseUp)
+}
+
 function onMouseMove(e) {
   if (!dragState) return
+  if (dragState.mode === 'arrow') {
+    const point = stagePoint(e)
+    if (!point) return
+    const original = dragState.original
+    if (dragState.handle === 'width') {
+      store.updateWidget(dragState.id, { props: { strokeWidth: arrowStrokeWidthAfterDrag(original, dragState.point, point) } })
+    } else {
+      const patch = moveArrowEndpoint(original, dragState.handle, point, page.value)
+      if (patch) store.updateWidget(dragState.id, patch)
+    }
+    return
+  }
   if (dragState.mode === 'marquee') {
     const point = stagePoint(e)
     const start = dragState.point
@@ -482,6 +530,9 @@ onBeforeUnmount(() => {
   border-radius: 1px;
   z-index: 2;
 }
+.arrow-handle { position:absolute; width:12px; height:12px; transform:translate(-50%, -50%); padding:0; border:2px solid #409eff; border-radius:50%; background:#fff; cursor:crosshair; z-index:3; }
+.arrow-handle:hover { background:#ecf5ff; }
+.arrow-width { width:10px; height:10px; border-color:#e6a23c; border-radius:2px; transform:translate(-50%, -50%) rotate(45deg); cursor:ns-resize; }
 .handle.nw { left: -5px; top: -5px; cursor: nwse-resize; }
 .handle.n  { left: 50%; top: -5px; margin-left: -4px; cursor: ns-resize; }
 .handle.ne { right: -5px; top: -5px; cursor: nesw-resize; }

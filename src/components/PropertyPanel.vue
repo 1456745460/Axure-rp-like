@@ -61,7 +61,7 @@
           <el-form-item label="宽">
             <el-input-number
               :model-value="widget.width"
-              :min="widget.type === 'image' ? 1 : 24"
+              :min="widget.type === 'arrow' ? 33 : widget.type === 'image' ? 1 : 24"
               controls-position="right"
               @update:model-value="(v) => patch({ width: Number(v) || 24 })"
             />
@@ -69,12 +69,27 @@
           <el-form-item label="高">
             <el-input-number
               :model-value="widget.height"
-              :min="widget.type === 'image' ? 1 : 16"
+              :min="widget.type === 'arrow' ? 33 : widget.type === 'image' ? 1 : 16"
               controls-position="right"
               @update:model-value="(v) => patch({ height: Number(v) || 16 })"
             />
           </el-form-item>
         </div>
+
+        <template v-if="widget.type === 'arrow'">
+          <el-form-item label="箭头宽度（粗细）">
+            <div class="arrow-stroke-control">
+              <el-slider :model-value="Number(widget.props.strokeWidth || 3)" :min="1" :max="16"
+                @change="v => patchProp('strokeWidth', v)" />
+              <el-input-number :model-value="Number(widget.props.strokeWidth || 3)" :min="1" :max="16"
+                controls-position="right" aria-label="箭头宽度数值" @change="v => patchProp('strokeWidth', v)" />
+            </div>
+          </el-form-item>
+          <p class="control-hint">拖动蓝色首尾圆点调整方向和长度，拖动橙色点调整粗细。</p>
+        </template>
+        <el-form-item v-if="widget.type === 'icon'" label="选择图标">
+          <IconPicker :key="widget.id" :model-value="widget.props.icon" @update:model-value="v => patchProp('icon', v)" />
+        </el-form-item>
 
         <template v-if="hasProp('text')">
           <el-form-item label="文本">
@@ -207,7 +222,7 @@
             @update:model-value="(v) => patchStyle('fontSize', v)"
           />
         </el-form-item>
-        <el-form-item label="文字颜色">
+        <el-form-item :label="widget.type === 'arrow' ? '箭头颜色' : widget.type === 'icon' ? '图标颜色' : '文字颜色'">
           <el-color-picker
             :model-value="widget.style?.color || '#303133'"
             @update:model-value="(v) => patchStyle('color', v)"
@@ -256,6 +271,7 @@
 import { computed, ref, watch } from 'vue'
 import { DArrowLeft, DArrowRight } from '@element-plus/icons-vue'
 import { useProjectStore } from '@/stores/project'
+import IconPicker from './IconPicker.vue'
 
 const store = useProjectStore()
 const collapsed = ref(false)
@@ -343,6 +359,10 @@ function renamePage(name) {
   text-align: center;
 }
 .selection-note { padding:8px; margin-bottom:10px; font-size:12px; color:#409eff; background:#ecf5ff; border-radius:4px; }
+.control-hint { margin:0 0 12px; color:#909399; font-size:12px; line-height:1.6; }
+.arrow-stroke-control { display:flex; align-items:center; gap:12px; width:100%; }
+.arrow-stroke-control :deep(.el-slider) { flex:1; min-width:0; margin:0 8px; }
+.arrow-stroke-control :deep(.el-input-number) { width:72px; flex-shrink:0; }
 .section-title {
   display: flex;
   align-items: center;
