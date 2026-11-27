@@ -58,7 +58,7 @@
           <input v-else-if="field.type === 'checkbox'" v-model="editDraft[field.key]" type="checkbox" :aria-label="field.label" />
           <input v-else v-model="editDraft[field.key]" :type="field.type" :aria-label="field.label" />
         </label>
-        <label v-if="editingWidget.type === 'image'">选择图片<input type="file" accept="image/*" @change="replaceImage" /></label>
+        <label v-if="editingWidget.type === 'image'">选择图片<input type="file" accept="image/*" @mousedown="onNativePickerMouseDown" @change="replaceImage" /></label>
         <button class="editor-done" type="submit">完成</button>
       </form>
     </div>
@@ -70,7 +70,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import WidgetView from './WidgetView.vue'
 import EditableTable from './EditableTable.vue'
-import { snapPosition, editableFields, parseField, isTextInput, shouldIgnoreCanvasClipboard, widgetBounds, widgetsInRect } from '@/utils/editor'
+import { snapPosition, editableFields, parseField, isTextInput, shouldIgnoreCanvasClipboard, shouldCommitInlineEditorOnFocusOut, widgetBounds, widgetsInRect } from '@/utils/editor'
 import { useProjectStore } from '@/stores/project'
 import { arrowGeometry, arrowStrokeWidthAfterDrag, moveArrowEndpoint } from '@/utils/arrow'
 
@@ -122,11 +122,36 @@ function finishEditing() {
   store.updateWidget(widget.id, patch)
   cancelEditing()
 }
-function cancelEditing() { editingId.value = null }
+let nativePickerOpen = false
+let focusOutTimer = 0
+function cancelEditing() {
+  editingId.value = null
+  nativePickerOpen = false
+  if (focusOutTimer) { clearTimeout(focusOutTimer); focusOutTimer = 0 }
+}
+function onNativePickerMouseDown() { nativePickerOpen = true }
 function onEditorFocusOut(event) {
-  if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) finishEditing()
+  const form = event.currentTarget
+  if (form.contains(event.relatedTarget)) return
+  const fromPicker = event.target?.type === 'file' || event.target?.type === 'color'
+  if (focusOutTimer) clearTimeout(focusOutTimer)
+  focusOutTimer = window.setTimeout(() => {
+    focusOutTimer = 0
+    if (!editingId.value) return
+    const picking = nativePickerOpen
+    nativePickerOpen = false
+    const active = document.activeElement
+    if (!shouldCommitInlineEditorOnFocusOut({
+      editorContainsActiveElement: form.isConnected && form.contains(active),
+      documentHasFocus: document.hasFocus(),
+      nativePicker: fromPicker || picking,
+      activeElementIsPageRoot: !active || active === document.body || active === document.documentElement || active === viewportRef.value
+    })) return
+    finishEditing()
+  })
 }
 async function replaceImage(event) {
+  nativePickerOpen = false
   const file = event.target.files?.[0]
   if (!file) return
   try { editDraft.value.src = (await readImage(file)).src }
@@ -454,6 +479,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  cancelEditing()
   onMouseUp()
   window.removeEventListener('copy', onCopy)
   window.removeEventListener('cut', onCut)

@@ -44,13 +44,12 @@ function onDragStart(e, item) {
     props: JSON.parse(JSON.stringify(item.defaultProps)), style: { ...item.defaultStyle } }
   previewElement = document.createElement('div')
   previewElement.className = 'component-drag-preview'
-  Object.assign(previewElement.style, { position: 'fixed', left: '0px', top: '0px', pointerEvents: 'none',
+  Object.assign(previewElement.style, { position: 'fixed', left: '-10000px', top: '0px', pointerEvents: 'none',
     zIndex: '2147483647', width: `${widget.width}px`, height: `${widget.height}px` })
   document.body.appendChild(previewElement)
   previewApp = createApp(WidgetView, { widget })
   previewApp.mount(previewElement)
   e.dataTransfer.setDragImage(previewElement, widget.width / 2, widget.height / 2)
-  requestAnimationFrame(clearDragPreview)
   e.dataTransfer.setData(
     'application/x-prototype-component',
     JSON.stringify({ type: item.type })

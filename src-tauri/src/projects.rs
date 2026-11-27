@@ -4,7 +4,6 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use std::sync::Mutex;
 use tauri::{AppHandle, Manager, State};
-use tauri_plugin_dialog::DialogExt;
 
 pub struct Db(pub Mutex<Connection>);
 
@@ -169,17 +168,6 @@ pub fn delete_project(db: State<Db>, id: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn export_html(app: AppHandle, default_name: String, contents: String) -> Result<bool, String> {
-    let file = app
-        .dialog()
-        .file()
-        .set_file_name(&default_name)
-        .add_filter("HTML", &["html"])
-        .blocking_save_file();
-    let Some(file) = file else {
-        return Ok(false);
-    };
-    let path = file.into_path().map_err(|err| err.to_string())?;
-    std::fs::write(path, contents).map_err(|err| err.to_string())?;
-    Ok(true)
+pub fn write_exported_html(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(path, contents).map_err(|err| err.to_string())
 }

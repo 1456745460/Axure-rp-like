@@ -54,6 +54,19 @@ export function isTextInput(target) {
   return !!target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]')
 }
 
+export function shouldCommitInlineEditorOnFocusOut({
+  editorContainsRelatedTarget = false,
+  editorContainsActiveElement = false,
+  documentHasFocus = true,
+  nativePicker = false,
+  activeElementIsPageRoot = false
+} = {}) {
+  if (editorContainsRelatedTarget || editorContainsActiveElement) return false
+  if (!documentHasFocus) return false
+  if (nativePicker && activeElementIsPageRoot) return false
+  return true
+}
+
 export function shouldIgnoreCanvasClipboard(target) {
   if (target?.closest?.('.el-tree, .el-dialog, .el-message-box, .editable-table')) return true
   if (target?.closest?.('.widget')) return false

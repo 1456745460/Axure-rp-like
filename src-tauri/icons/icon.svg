@@ -17,5 +17,5 @@
   <rect x="232" y="228" width="560" height="560" rx="36" fill="url(#grid)"/>
   <rect x="286" y="318" width="292" height="268" rx="22" fill="rgba(64,158,255,0.10)" stroke="#409eff" stroke-width="22"/>
   <rect x="536" y="546" width="58" height="58" rx="8" fill="#409eff" stroke="#ffffff" stroke-width="10"/>
-  <path d="M548 478 L742 706 L638 706 L710 830 L628 830 L548 698 L548 830 Z" fill="#111827"/>
+  <path d="M548 470 L786 678 L682 678 L732 778 L678 778 L628 686 L548 778 Z" fill="#111827" stroke="#ffffff" stroke-width="16" stroke-linejoin="round"/>
 </svg>

@@ -18,17 +18,18 @@ export async function openPreviewWindow(href) {
   if (existing) {
     try {
       await existing.setFocus()
+      return true
     } catch {
-      /* The previous preview window may already be closing. */
+      /* Recreate when the previous preview window is already gone. */
     }
-    return true
   }
   const preview = new WebviewWindow('preview', {
     url: href,
     title: '预览',
     width: 1440,
     height: 900,
-    center: true
+    center: true,
+    dragDropEnabled: false
   })
   return new Promise((resolve) => {
     preview.once('tauri://created', () => resolve(true))
@@ -37,5 +38,12 @@ export async function openPreviewWindow(href) {
 }
 
 export async function exportHtmlToFile(filename, html) {
-  return invokeCommand('export_html', { defaultName: filename, contents: html })
+  const { save } = await import('@tauri-apps/plugin-dialog')
+  const path = await save({
+    defaultPath: filename,
+    filters: [{ name: 'HTML', extensions: ['html'] }]
+  })
+  if (!path) return false
+  await invokeCommand('write_exported_html', { path, contents: html })
+  return true
 }

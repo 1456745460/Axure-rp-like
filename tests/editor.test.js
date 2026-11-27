@@ -4,7 +4,7 @@ import { Script } from 'node:vm'
 import { createPinia, setActivePinia } from 'pinia'
 import { useProjectStore, COMPONENT_LIBRARY } from '../src/stores/project.js'
 import { buildExportHtml, renderFeedbackHtml } from '../src/utils/exportHtml.js'
-import { snapPosition, editableFields, parseField, paginationState, widgetsInRect, shouldIgnoreCanvasClipboard } from '../src/utils/editor.js'
+import { snapPosition, editableFields, parseField, paginationState, widgetsInRect, shouldIgnoreCanvasClipboard, shouldCommitInlineEditorOnFocusOut } from '../src/utils/editor.js'
 
 function setup() {
   setActivePinia(createPinia())
@@ -110,6 +110,16 @@ test('alignment snaps edges and centers to widgets and page, with a finite thres
   assert.equal(free.x, 333)
   assert.equal(free.guideX, null)
   assert.equal(snapPosition(widget, 448, 378, page).x, 450)
+})
+
+test('inline editor stays open when a native file picker steals focus', () => {
+  const bug = { editorContainsRelatedTarget: false, editorContainsActiveElement: false, documentHasFocus: true, nativePicker: true, activeElementIsPageRoot: true }
+  assert.equal(shouldCommitInlineEditorOnFocusOut(bug), false)
+  assert.equal(shouldCommitInlineEditorOnFocusOut({ ...bug, documentHasFocus: false, activeElementIsPageRoot: false }), false)
+  assert.equal(shouldCommitInlineEditorOnFocusOut({ editorContainsRelatedTarget: true }), false)
+  assert.equal(shouldCommitInlineEditorOnFocusOut({ editorContainsActiveElement: true }), false)
+  assert.equal(shouldCommitInlineEditorOnFocusOut({ nativePicker: true, activeElementIsPageRoot: false }), true)
+  assert.equal(shouldCommitInlineEditorOnFocusOut({}), true)
 })
 
 test('direct editor preserves array separators and parses table data', () => {

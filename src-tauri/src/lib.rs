@@ -17,7 +17,7 @@ pub fn run() {
             projects::get_project,
             projects::save_project,
             projects::delete_project,
-            projects::export_html,
+            projects::write_exported_html,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

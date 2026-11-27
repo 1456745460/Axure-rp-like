@@ -2,6 +2,8 @@
 
 基于 **Vite 3 + Vue 3 + Element Plus** 的原型设计工具，可在浏览器中开发，也可用 Tauri 打包成 Mac 应用。
 
+![alt text](12982d08-db22-4058-921f-606a0ec1b694.png)
+
 ## 功能
 
 - **左上**：页面 / 文件夹目录树（增删改查、重命名、切换页面）
@@ -35,7 +37,9 @@ npm run server   # 仅 API
 npm run client   # 仅 Vite
 ```
 
-macOS 可打包为独立应用（需 Rust、Xcode Command Line Tools 和项目依赖，**不需要**本机常驻 Node 服务）：
+GitHub Actions 会在推送到 `main` 时打 **Mac Apple Silicon `.dmg`** 和 **Windows x64 NSIS `.exe`**，在对应跑次的 Artifacts 里下载；推送 `v1.0.0` 这类标签时会发 GitHub Release 并挂上这两个包。本机不打 Windows，也不做 Apple 公证。
+
+macOS 本机可打包为独立应用（需 Rust、Xcode Command Line Tools 和项目依赖，**不需要**本机常驻 Node 服务）：
 
 ```bash
 npm run tauri:dev      # 开发：原生窗口加载 Vite
