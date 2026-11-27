@@ -1,6 +1,6 @@
 # 在线原型设计（Axure-like）
 
-基于 **Vite 3 + Vue 3 + Element Plus** 的浏览器端原型设计工具。
+基于 **Vite 3 + Vue 3 + Element Plus** 的原型设计工具，可在浏览器中开发，也可用 Tauri 打包成 Mac 应用。
 
 ## 功能
 
@@ -35,16 +35,17 @@ npm run server   # 仅 API
 npm run client   # 仅 Vite
 ```
 
-macOS 可安装一键启动应用（需已安装 Node.js、项目依赖及 Xcode Command Line Tools）：
+macOS 可打包为独立应用（需 Rust、Xcode Command Line Tools 和项目依赖，**不需要**本机常驻 Node 服务）：
 
 ```bash
-bash scripts/install-macos-app.sh
+npm run tauri:dev      # 开发：原生窗口加载 Vite
+npm run tauri:build    # 产出 .app / .dmg
+bash scripts/install-macos-app.sh   # 构建并安装到 /Applications/Axure RP Like.app
 ```
 
-双击 `/Applications/Axure RP Like.app` 后，服务在后台启动并自动打开浏览器，应用常驻 Dock。
-右键 Dock 图标选择「退出」，或在应用菜单按 `Command + Q`，会停止应用启动的前后端服务。
-重复打开应用会再次打开浏览器。启动日志位于 `~/Library/Logs/Axure RP Like.log`。
-若已通过 `npm run dev` 启动项目，请先停止该命令，避免端口占用。移动项目目录后需重新运行安装脚本。
+双击应用打开原生编辑器窗口。项目保存在 `~/Library/Application Support/com.prototype.axure-rp-like/`。
+预览在应用内新窗口打开；导出 HTML 会弹出保存对话框。
+浏览器开发仍用 `npm run dev`，数据在仓库 `data/prototype.db`，与 Mac 应用数据互不混用。
 
 ## 使用提示
 
@@ -56,13 +57,14 @@ bash scripts/install-macos-app.sh
 6. 在空白画布按住鼠标拖出选框，或 `Shift/Ctrl/Cmd + 单击` 多选；`Ctrl/Cmd + A` 全选当前页。`Ctrl/Cmd + C/X/V` 复制/剪切/粘贴所选控件或粘贴外部图片；粘贴组的中心位于最近的画布鼠标位置（边缘自动限制）；`Ctrl/Cmd + D` 快速复制，`Ctrl/Cmd + S` 保存
 7. `Ctrl/Cmd + Z` 撤销，`Ctrl/Cmd + Shift + Z` 或 `Ctrl + Y` 重做；拖动/缩放/目录拖拽各作为一步，最多保留 60 步；打开或新建项目会清空历史
 8. `Ctrl/Cmd + B/I/U` 切换选中控件的加粗、倾斜、下划线；输入框内保留浏览器原生文字编辑快捷键
-9. 顶部显示自动保存状态，失败时可点「保存」重试；「预览」打开新标签页，「导出 HTML」下载可离线预览的原型
+9. 顶部显示自动保存状态，失败时可点「保存」重试；「预览」在浏览器中打开新标签页，在 Mac 应用中打开新窗口；「导出 HTML」下载（应用内为保存对话框）可离线预览的原型
 
 ## 验证
 
 ```bash
 npm test
 npm run build
+npm run tauri:build
 ```
 
 升级 `@element-plus/icons-vue` 后，运行 `npm run generate:icons` 更新用于图标选择和离线导出的 SVG 资源。

@@ -3,19 +3,26 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TARGET="${1:-/Applications/Axure RP Like.app}"
+cd "$PROJECT_DIR"
+
+if [[ ! -d node_modules ]]; then
+  echo '请先在项目目录运行 npm install。' >&2
+  exit 1
+fi
+
+npm run tauri:build
+
+APP="$PROJECT_DIR/src-tauri/target/release/bundle/macos/Axure RP Like.app"
+if [[ ! -d "$APP" ]]; then
+  echo "未找到打包结果：$APP" >&2
+  exit 1
+fi
+
 STAGING="$(mktemp -d "${TMPDIR:-/tmp}/axure-app.XXXXXX")"
-BUNDLE="$STAGING/Axure RP Like.app"
-mkdir -p "$BUNDLE/Contents/MacOS" "$BUNDLE/Contents/Resources"
-xcrun clang "$PROJECT_DIR/scripts/app/main.m" -O2 -fobjc-arc -framework AppKit -o "$BUNDLE/Contents/MacOS/AxureLauncher"
-cp "$PROJECT_DIR/scripts/app/Info.plist" "$BUNDLE/Contents/Info.plist"
-/usr/bin/plutil -insert AxureProjectDirectory -string "$PROJECT_DIR" "$BUNDLE/Contents/Info.plist"
-cp "$PROJECT_DIR/scripts/launcher" "$BUNDLE/Contents/Resources/launcher"
-/usr/bin/plutil -lint "$BUNDLE/Contents/Info.plist"
-/usr/bin/codesign --force --sign - "$BUNDLE"
 if [[ -e "$TARGET" ]]; then
   mv "$TARGET" "$STAGING/previous.app"
 fi
 mkdir -p "$(dirname "$TARGET")"
-mv "$BUNDLE" "$TARGET"
+cp -R "$APP" "$TARGET"
 echo "应用已安装：$TARGET"
 echo "旧应用备份（如有）：$STAGING/previous.app"

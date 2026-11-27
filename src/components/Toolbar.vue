@@ -56,6 +56,8 @@ import { useProjectStore } from '@/stores/project'
 import { createAutoSaver } from '@/utils/autoSave'
 import { buildExportHtml, downloadHtml } from '@/utils/exportHtml'
 import { DRAFT_KEY } from '@/utils/livePreview'
+import { deleteProject, getProject, listProjects, saveProject } from '@/utils/projectApi'
+import { exportHtmlToFile, isTauri, openPreviewWindow } from '@/utils/desktop'
 
 const store = useProjectStore()
 const projectName = ref(store.name)
@@ -88,13 +90,7 @@ const saver = createAutoSaver({
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 15000)
     try {
-      const response = await fetch(body.id ? `/api/projects/${body.id}` : '/api/projects', {
-        method: body.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body), signal: controller.signal
-      })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error || '保存失败')
-      return data
+      return await saveProject(body, { signal: controller.signal })
     } finally { clearTimeout(timeout) }
   },
   onSaved(data) { store.id = data.id; store.updatedAt = data.updatedAt },
@@ -160,10 +156,10 @@ async function save() {
   persistDraft()
   saver.request()
   try { await saver.flush() }
-  catch (error) { ElMessage.error(error.message || '保存失败，请确认后端已启动') }
+  catch (error) { ElMessage.error(error.message || '保存失败') }
 }
 
-function preview() {
+async function preview() {
   window.dispatchEvent(new Event('prototype:commit-edit'))
   store.setName(projectName.value)
   if (!persistDraft()) {
@@ -173,29 +169,34 @@ function preview() {
   const url = new URL(window.location.href)
   url.searchParams.set('preview', '1')
   url.hash = ''
-  const tab = window.open(url.href, '_blank')
-  if (!tab) ElMessage.warning('请允许浏览器打开预览标签页')
-  else tab.opener = null
+  const opened = await openPreviewWindow(url.href)
+  if (!opened) ElMessage.warning(isTauri() ? '无法打开预览窗口' : '请允许浏览器打开预览标签页')
 }
 
-function exportHtml() {
+async function exportHtml() {
   store.setName(projectName.value)
   const html = buildExportHtml(store.toJSON())
   const safe = (store.name || 'prototype').replace(/[\\/:*?"<>|]/g, '_')
-  downloadHtml(`${safe}.html`, html)
-  ElMessage.success('已导出 HTML')
+  try {
+    if (isTauri()) {
+      const saved = await exportHtmlToFile(`${safe}.html`, html)
+      if (saved) ElMessage.success('已导出 HTML')
+      return
+    }
+    downloadHtml(`${safe}.html`, html)
+    ElMessage.success('已导出 HTML')
+  } catch (error) {
+    ElMessage.error(error.message || '导出失败')
+  }
 }
 
 async function openProjectDialog() {
   dialogVisible.value = true
   loadingList.value = true
   try {
-    const res = await fetch('/api/projects')
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || '加载失败')
-    projects.value = data.list || []
+    projects.value = await listProjects()
   } catch (e) {
-    ElMessage.error(e.message || '无法连接后端')
+    ElMessage.error(e.message || '无法加载项目列表')
     projects.value = []
   } finally {
     loadingList.value = false
@@ -205,9 +206,7 @@ async function openProjectDialog() {
 async function loadProject(id) {
   try {
     await saver.flush()
-    const res = await fetch(`/api/projects/${id}`)
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || '打开失败')
+    const data = await getProject(id)
     store.loadProject(data)
     pending = false
     persistDraft()
@@ -224,9 +223,7 @@ async function removeProject(id) {
     await ElMessageBox.confirm('确定删除该项目？此操作不可恢复。', '删除确认', {
       type: 'warning'
     })
-    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error || '删除失败')
+    await deleteProject(id)
     projects.value = projects.value.filter((p) => p.id !== id)
     ElMessage.success('已删除')
   } catch (e) {
